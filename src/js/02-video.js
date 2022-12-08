@@ -3,27 +3,36 @@ var throttle = require('lodash.throttle');
 
 const iframe = document.querySelector('iframe');
 const player = new Vimeo(iframe);
+let movieEnded = false;
 
-const savedTime = () => {
-  player.setCurrentTime(localStorage.getItem('videoplayer-current-time'));
+const localStorageClear = () => {
+  localStorage.removeItem('videoplayer-current-time');
+  movieEnded = false;
 };
 
-window.addEventListener('load', savedTime);
-//saving current playtime
+const localStorageSave = time => {
+  localStorage.setItem('videoplayer-current-time', time);
+};
+// checking state of localStorage
+if (localStorage.getItem('videoplayer-current-time') !== null) {
+  player.setCurrentTime(localStorage.getItem('videoplayer-current-time'));
+}
+//behavior on play
 player.on(
   'timeupdate',
   throttle(evt => {
-    localStorage.setItem('videoplayer-current-time', evt.seconds);
+    if (movieEnded === false) {
+      localStorageSave(evt.seconds);
+    } else {
+      localStorageClear();
+      return;
+    }
   }, 1000)
 );
-
-
-
-player.on('ended', evt => {
-   const timeToFixed = Number(localStorage.getItem('videoplayer-current-time')) + 1
-  console.log(evt.duration.toFixed(0));
-  console.log(timeToFixed.toFixed(0));
-  if (timeToFixed.toFixed(0) === evt.duration.toFixed(0)) {
-    localStorage.removeItem('videoplayer-current-time');
-  }
+//behavior on ended
+player.on('ended', () => {
+  movieEnded = true;
 });
+
+
+
